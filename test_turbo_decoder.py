@@ -8,6 +8,7 @@ import subprocess
 from wx.lib.pubsub import Publisher
 import time
 import threading 
+import ConfigParser
 
 # 设置系统默认编码方式，不用下面两句，中文会乱码
 reload(sys)  
@@ -22,6 +23,30 @@ class MainFrame(wx.Frame):
         self.Centre()
         panel = wx.Panel(self)
 
+        self.param_config = ConfigParser.ConfigParser()
+        self.param_config.read("param.conf")
+
+        try: conf_testcase = self.param_config.get("param", "test_case")
+        except: conf_testcase = 'Turbo码内核测试'
+        try: conf_block = self.param_config.get("param", "block_size")
+        except: conf_block = '400'
+        try: conf_rate = self.param_config.get("param", "code_rate")
+        except: conf_rate = '0.3'
+        try: conf_alg = self.param_config.get("param", "de_alg")
+        except: conf_alg = 'max-log-map' 
+        try: conf_iter = self.param_config.get("param", "iter")
+        except: conf_iter = '3' 
+        try: conf_delta = self.param_config.get("param", "sova_delta")
+        except: conf_delta = '30'
+        try: conf_fast = self.param_config.get("param", "sova_fast")
+        except: conf_fast = False
+        try: conf_modulation = self.param_config.get("param", "modtype")
+        except: conf_modulation = 'qpsk' 
+        try: conf_judge = self.param_config.get("param", "judge")
+        except: conf_judge = '软判决'
+        try: conf_EbN0 = self.param_config.get("param", "EbN0_db")
+        except: conf_EbN0 = '2'  
+
         #绑定窗口的关闭事件
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
@@ -32,42 +57,42 @@ class MainFrame(wx.Frame):
         # 测试类型
         test_types_list = [u'Turbo码内核测试', u'PDSCH测试']
         test_types_st = wx.StaticText(panel, -1, u'测试类型:')
-        self.test_types = wx.ComboBox(panel, -1, test_types_list[0],
+        self.test_types = wx.ComboBox(panel, -1, conf_testcase,
             wx.DefaultPosition, wx.DefaultSize, test_types_list, 0)
         self.Bind(wx.EVT_COMBOBOX, self.OnChoose, self.test_types) 
 
 	   # 编码参数		
         block_st = wx.StaticText(panel, -1, u'块大小(bit):')
-        self.block_txt = wx.TextCtrl(panel, -1, '400')
+        self.block_txt = wx.TextCtrl(panel, -1, conf_block)
         code_rate_list = ['0.1','0.2','0.3','0.4','0.5','0.6','0.7']
         code_rate_st = wx.StaticText(panel, -1, u'编码码率:')
         self.code_rate = wx.ComboBox(panel, -1, code_rate_list[2],
             wx.DefaultPosition, wx.DefaultSize, code_rate_list, 0)
         # 译码参数
-        decode_list = ['max-log-map', 'sova', 'log-map']
+        decode_list = ['max-log-map', 'sova', 'log-map', 'max-log-map-i', 'sova-i', 'log-map-i']
         decode_st = wx.StaticText(panel, -1, u'译码方法:')
-        self.decode_txt = wx.ComboBox(panel, -1, decode_list[0],
+        self.decode_txt = wx.ComboBox(panel, -1, conf_alg,
             wx.DefaultPosition, wx.DefaultSize, decode_list, 0)
         iterate_list = ['1','2','3','4','5']
         iterate_st = wx.StaticText(panel, -1, u'迭代次数:')
-        self.iterate_txt = wx.ComboBox(panel, -1, iterate_list[2],
+        self.iterate_txt = wx.ComboBox(panel, -1, conf_iter,
             wx.DefaultPosition, wx.DefaultSize, iterate_list, 0)
         sova_delta_st = wx.StaticText(panel, -1, u'历史窗口:')
-        self.sova_delta_txt = wx.TextCtrl(panel, -1, '30')
+        self.sova_delta_txt = wx.TextCtrl(panel, -1, conf_delta)
         self.sova_fast = wx.CheckBox(panel, -1,label=u'使用SOVA快速算法',
             pos=wx.DefaultPosition, size=wx.DefaultSize)
         # 调制参数
         modulation_list = ['qpsk','16qam','64qam']
         modulation_st = wx.StaticText(panel, -1, u'调制方式:')
-        self.modulation_txt = wx.ComboBox(panel, -1, modulation_list[0],
+        self.modulation_txt = wx.ComboBox(panel, -1, conf_modulation,
         wx.DefaultPosition, wx.DefaultSize, modulation_list, 0)
         # 解调参数
         judge_list = [u'软判决', u'硬判决']
         judge_st = wx.StaticText(panel, -1, u'判决方式:')
-        self.judge_txt = wx.ComboBox(panel, -1, judge_list[0],
+        self.judge_txt = wx.ComboBox(panel, -1, conf_judge,
             wx.DefaultPosition, wx.DefaultSize, judge_list, 0)
         SNR_st = wx.StaticText(panel, -1, u'比特信噪比(dB):')
-        self.SNR_txt = wx.TextCtrl(panel, -1, '2')
+        self.SNR_txt = wx.TextCtrl(panel, -1, conf_EbN0)
 
         self.test_btn = wx.Button(panel, label="开始测试")
         self.test_btn.SetBackgroundColour('black')
@@ -205,6 +230,26 @@ class MainFrame(wx.Frame):
         for item in cmd_msg_list:
             cmd_msg = cmd_msg+item+' '
         return cmd_msg
+
+    def write_param(self):
+        self.param_config.read("param.conf")
+        if "param" not in self.param_config.sections():
+            self.param_config.add_section("param")
+
+        self.param_config.set("param", "test_case", self.test_types.GetValue())
+        self.param_config.set("param", "block_size", self.block_txt.GetValue())
+        self.param_config.set("param", "code_rate", self.code_rate.GetValue())
+        self.param_config.set("param", "de_alg", self.decode_txt.GetValue())
+        self.param_config.set("param", "iter", self.iterate_txt.GetValue())
+        self.param_config.set("param", "sova_delta", self.sova_delta_txt.GetValue())
+        self.param_config.set("param", "sova_fast", self.sova_fast.GetValue())
+        self.param_config.set("param", "modtype", self.modulation_txt.GetValue())
+        self.param_config.set("param", "judge", self.judge_txt.GetValue())
+        self.param_config.set("param", "EbN0_db", self.SNR_txt.GetValue())
+        #写入配置文件
+        param_file = open("param.conf","w")
+        self.param_config.write(param_file)
+        param_file.close()
 
     # 测试响应事件
     def OnTest(self,event):
