@@ -253,6 +253,7 @@ class MainFrame(wx.Frame):
 
     # 测试响应事件
     def OnTest(self,event):
+        self.write_param()
         self.test_btn.Disable()
         self.DisplayText.Clear()
         self.m_gauge1.SetValue(0)
