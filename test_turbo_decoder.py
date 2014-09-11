@@ -14,7 +14,7 @@ import ConfigParser
 reload(sys)  
 sys.setdefaultencoding("utf-8")
 
-# 测试完成或未尽进行
+# 测试完成或未进行
 flag = 0
 
 class MainFrame(wx.Frame):
@@ -26,6 +26,7 @@ class MainFrame(wx.Frame):
         self.param_config = ConfigParser.ConfigParser()
         self.param_config.read("param.conf")
 
+        # 参数从配置文件读取，如果配置文件不存在，则使用默认值
         try: conf_testcase = self.param_config.get("param", "test_case")
         except: conf_testcase = 'Turbo码内核测试'
         try: conf_block = self.param_config.get("param", "block_size")
@@ -68,6 +69,7 @@ class MainFrame(wx.Frame):
         code_rate_st = wx.StaticText(panel, -1, u'编码码率:')
         self.code_rate = wx.ComboBox(panel, -1, code_rate_list[2],
             wx.DefaultPosition, wx.DefaultSize, code_rate_list, 0)
+
         # 译码参数
         decode_list = ['max-log-map', 'sova', 'log-map', 'max-log-map-i', 'sova-i', 'log-map-i']
         decode_st = wx.StaticText(panel, -1, u'译码方法:')
@@ -81,11 +83,13 @@ class MainFrame(wx.Frame):
         self.sova_delta_txt = wx.TextCtrl(panel, -1, conf_delta)
         self.sova_fast = wx.CheckBox(panel, -1,label=u'使用SOVA快速算法',
             pos=wx.DefaultPosition, size=wx.DefaultSize)
+
         # 调制参数
         modulation_list = ['qpsk','16qam','64qam']
         modulation_st = wx.StaticText(panel, -1, u'调制方式:')
         self.modulation_txt = wx.ComboBox(panel, -1, conf_modulation,
         wx.DefaultPosition, wx.DefaultSize, modulation_list, 0)
+
         # 解调参数
         judge_list = [u'软判决', u'硬判决']
         judge_st = wx.StaticText(panel, -1, u'判决方式:')
@@ -189,10 +193,14 @@ class MainFrame(wx.Frame):
             self.code_rate.Disable()
 
     def updateDisplay(self, msg): 
-        """
-        从线程接收数据并且在界面更新显示
-        """
+        # 从线程接收数据并且在界面更新显示
         self.DisplayText.AppendText(str(msg.data))
+
+        # 测试结果写入文件
+        try: self.result_file.write(str(msg.data))        
+        except:
+            print "写入文件时出错"
+            pass
 
     def updateDisplay_gauge(self, msg): 
         t = msg.data
@@ -258,7 +266,6 @@ class MainFrame(wx.Frame):
         self.DisplayText.Clear()
         self.m_gauge1.SetValue(0)
         ret_msg = self.data_process()
-        # print ret_msg
 
         # self.p=subprocess.Popen('../../build/apps/c++/lte_test'+' '+ret_msg, 
         #     shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -270,8 +277,8 @@ class MainFrame(wx.Frame):
 
     def start_server(self):
         global flag
-        # self.stop_btn.Enable()
         i = 0
+        self.result_file = open("result.dat","w")
         while True:
             flag = 1            
             i = i+1
@@ -284,16 +291,9 @@ class MainFrame(wx.Frame):
                 wx.CallAfter(Publisher().sendMessage, "update_gauge", 100)
                 flag = 0
                 self.test_btn.Enable()
-                break  
-
-        # # 结果写入文件
-        # result_file = open("result.dat","w")
-        # for entry in result:
-        #     try:
-        #         result_file.write(entry)
-        #     except:
-        #         pass
-        # result_file.close()   
+                break
+        time.sleep(0.5)
+        self.result_file.close()
 
     def OnCloseWindow(self, event):
         global flag
@@ -302,13 +302,15 @@ class MainFrame(wx.Frame):
                 dlg = wx.MessageDialog(self, u"\n测试正在进行...\n确认退出?", u"温馨提示", wx.YES_NO | wx.ICON_QUESTION)
                 if dlg.ShowModal() == wx.ID_YES:
                     self.Destroy()
+                    self.result_file.close()
                 else:
                     pass
                 dlg.Destroy()
             else:
-             self.Destroy()                
+             self.Destroy()              
         except:
             self.Destroy()
+            self.result_file.close()
 
 if __name__ == '__main__':
     app = wx.PySimpleApp()
