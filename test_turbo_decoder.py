@@ -107,9 +107,11 @@ class MainFrame(wx.Frame):
             size=(350, 550), style=wx.TE_MULTILINE | wx.TE_READONLY) 
         self.DisplayText.SetBackgroundColour('gray')   
 
-        self.m_gauge1 = wx.Gauge(panel, wx.ID_ANY, 100, wx.DefaultPosition, wx.DefaultSize, wx.GA_HORIZONTAL)
+        self.m_gauge1 = wx.Gauge(panel, wx.ID_ANY, 100, wx.DefaultPosition, 
+            wx.DefaultSize, wx.GA_HORIZONTAL)
         self.m_gauge1.SetValue(0) 
-        self.m_staticText2 = wx.StaticText(panel, wx.ID_ANY, u'\t\t', wx.DefaultPosition, wx.DefaultSize, 0)
+        self.m_staticText2 = wx.StaticText(panel, wx.ID_ANY, u'\t\t', 
+            wx.DefaultPosition, wx.DefaultSize, 0)
         self.m_staticText2.Wrap(-1)        
 
         # 开始布局
@@ -273,7 +275,8 @@ class MainFrame(wx.Frame):
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         thread1 = threading.Thread(target = self.start_server)
         thread1.start()   
-        wx.MessageBox(u'\n测试可能需要很长时间\n\n请耐心等候...', caption=u'温馨提示', style=wx.OK)
+        wx.MessageBox(u'\n测试可能需要很长时间\n\n请耐心等候...\n\n测试结果将保存至result.dat中', 
+            caption=u'温馨提示', style=wx.OK)
 
     def start_server(self):
         global flag
@@ -299,7 +302,9 @@ class MainFrame(wx.Frame):
         global flag
         try:
             if flag == 1:
-                dlg = wx.MessageDialog(self, u"\n测试正在进行...\n确认退出?", u"温馨提示", wx.YES_NO | wx.ICON_QUESTION)
+                dlg = wx.MessageDialog( self,
+                 u"\n测试正在进行...\n确认退出?\n\n(测试结果可从result.dat中查看)",
+                 u"温馨提示", wx.YES_NO | wx.ICON_QUESTION )
                 if dlg.ShowModal() == wx.ID_YES:
                     self.Destroy()
                     self.result_file.close()
